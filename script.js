@@ -1,4 +1,5 @@
-/* ---------------- 1. firebase import ---------------- */
+/* ---------- firebase ---------- */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 
 import {
@@ -26,9 +27,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
-/* ---------------- 2. firebase config ----------------
-   Firebase console -> Project settings -> Your apps (</> web app)
-   wahan se apni values copy karke yaha paste karo */
 const firebaseConfig = {
   apiKey: "AIzaSyAxJe1qUJSrRzbwlNrqn-O-TsKG657Ly0M",
   authDomain: "zee-lms-bbefe.firebaseapp.com",
@@ -39,22 +37,20 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth(app);
+
 const db = getFirestore(app);
 
 
-/* ==========================================================
-   3. helper functions (sabhi pages me use hote hain)
-   ========================================================== */
+/* ---------- helper functions ---------- */
 
-// user ka text safe banane ke liye
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str == null ? '' : String(str);
   return div.innerHTML;
 }
 
-// firestore timestamp ko "2d ago" jaisa text banata hai
 function timeAgo(timestamp) {
   if (!timestamp) return 'Just now';
 
@@ -69,7 +65,6 @@ function timeAgo(timestamp) {
   return 'Just now';
 }
 
-// firebase ke error code ko simple message me badalta hai
 function friendlyError(err) {
   const code = err.code || '';
 
@@ -89,11 +84,9 @@ function friendlyError(err) {
 }
 
 
-/* ==========================================================
-   4. auth helpers
-   ========================================================== */
+/* ---------- login check ---------- */
 
-// abhi kaun login hai (login nahi hai to null milega)
+// login hai to user ka data, nahi to null
 function getCurrentUser() {
   return new Promise(function (resolve) {
     const stop = onAuthStateChanged(auth, async function (firebaseUser) {
@@ -104,7 +97,6 @@ function getCurrentUser() {
         return;
       }
 
-      // role users collection me save hota hai
       const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
 
       if (!snap.exists()) {
@@ -123,10 +115,9 @@ function getCurrentUser() {
   });
 }
 
-// navbar me "Hi, name" aur Logout / Login link dikhana
 async function renderAuthArea() {
   const el = document.getElementById('authArea');
-  if (!el) return; // is page me auth jagah nahi hai
+  if (!el) return;
 
   const user = await getCurrentUser();
 
@@ -146,9 +137,7 @@ async function renderAuthArea() {
 }
 
 
-/* ==========================================================
-   5. jobs - firestore functions
-   ========================================================== */
+/* ---------- jobs ---------- */
 
 async function getJobs() {
   const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
@@ -160,18 +149,15 @@ async function getJobs() {
 }
 
 
-/* ==========================================================
-   6. FIND JOB PAGE (index.html)
-   ========================================================== */
+/* ---------- index page ---------- */
 
-let allJobs = [];            // firestore se aayi saari jobs
-let appliedJobIds = [];      // jin jobs pe user apply kar chuka hai
+let allJobs = [];
+let appliedJobIds = [];
 
 function renderJobs() {
   const grid = document.getElementById('jobGrid');
   const countEl = document.querySelector('.listing-header .count');
 
-  // search aur filter ki value
   const searchText = document.getElementById('searchBox').value.toLowerCase();
   const typeValue = document.getElementById('typeFilter').value;
 
@@ -226,7 +212,6 @@ async function loadJobsPage() {
   try {
     allJobs = await getJobs();
 
-    // agar candidate login hai to uski applications nikalo
     const user = await getCurrentUser();
     appliedJobIds = [];
 
@@ -252,7 +237,6 @@ async function handleApplyClick(e) {
   const jobId = btn.dataset.jobId;
   const user = await getCurrentUser();
 
-  // login nahi hai to login page pe bhejo
   if (!user) {
     window.location.href = 'login.html';
     return;
@@ -271,11 +255,12 @@ async function handleApplyClick(e) {
   btn.textContent = 'Applying…';
 
   try {
-    // id = jobId_userId, isse ek banda ek job pe 2 baar apply nahi kar sakta
+    // jobId + userId se ek banda ek job pe ek hi baar apply kar sakta hai
     await setDoc(doc(db, 'applications', jobId + '_' + user.uid), {
       jobId: jobId,
       jobTitle: job.title,
       company: job.company,
+      ownerId: job.ownerId || '',
       candidateId: user.uid,
       candidateName: user.name,
       candidateEmail: user.email,
@@ -295,7 +280,7 @@ async function handleApplyClick(e) {
 
 function initFindJobPage() {
   const grid = document.getElementById('jobGrid');
-  if (!grid) return; // ye page nahi hai
+  if (!grid) return;
 
   loadJobsPage();
   grid.addEventListener('click', handleApplyClick);
@@ -305,13 +290,11 @@ function initFindJobPage() {
 }
 
 
-/* ==========================================================
-   7. WHY ZEE PAGE (about.html)
-   ========================================================== */
+/* ---------- about page ---------- */
 
 async function initAboutPage() {
   const liveCount = document.getElementById('liveCount');
-  if (!liveCount) return; // ye page nahi hai
+  if (!liveCount) return;
 
   try {
     const jobs = await getJobs();
@@ -319,18 +302,15 @@ async function initAboutPage() {
     liveCount.style.opacity = 1;
     liveCount.style.transition = 'opacity 0.6s ease';
   } catch (err) {
-    // ye sirf decoration hai, error ignore
   }
 }
 
 
-/* ==========================================================
-   8. LOGIN / SIGNUP PAGE (login.html)
-   ========================================================== */
+/* ---------- login page ---------- */
 
 function initLoginPage() {
   const loginForm = document.getElementById('loginForm');
-  if (!loginForm) return; // ye page nahi hai
+  if (!loginForm) return;
 
   const signupForm = document.getElementById('signupForm');
   const tabLogin = document.getElementById('tabLogin');
@@ -341,18 +321,17 @@ function initLoginPage() {
   const hint = document.getElementById('hintText');
   const signupBtn = document.getElementById('signupBtn');
 
-  let selectedRole = 'candidate';   // candidate ya admin
+  let selectedRole = 'candidate';
 
   function showMsg(text, isError) {
     msg.textContent = text;
     msg.className = 'auth-msg ' + (isError ? 'error' : 'success');
   }
 
-  // role badalne pe text update karna
   function updateRoleText() {
     if (selectedRole === 'admin') {
-      signupBtn.textContent = 'Request admin access';
-      hint.innerHTML = 'Admin signup ek <strong>request</strong> hoti hai.<br>Existing admin approve kare tabhi admin access milega.';
+      signupBtn.textContent = 'Create admin account';
+      hint.innerHTML = 'Company / recruiter account se jobs post kar sakte ho.<br>Aap sirf apni hi jobs dekh aur manage kar sakte ho.';
     } else {
       signupBtn.textContent = 'Create candidate account';
       hint.innerHTML = 'Candidate account se roles pe apply kar sakte ho.';
@@ -397,7 +376,6 @@ function initLoginPage() {
     msg.textContent = '';
   });
 
-  /* ---------- login ---------- */
   loginForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -416,7 +394,6 @@ function initLoginPage() {
 
       const data = snap.data();
 
-      // admin tab me candidate account se login kiya
       if (selectedRole === 'admin' && data.role !== 'admin') {
         await signOut(auth);
 
@@ -430,7 +407,6 @@ function initLoginPage() {
         return;
       }
 
-      // candidate tab me admin account se login kiya
       if (selectedRole === 'candidate' && data.role === 'admin') {
         await signOut(auth);
         showMsg('Ye admin account hai, upar Admin select karo.', true);
@@ -444,7 +420,6 @@ function initLoginPage() {
     }
   });
 
-  /* ---------- signup ---------- */
   signupForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -455,25 +430,15 @@ function initLoginPage() {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
 
-      // user ka data firestore me save (role hamesha candidate se shuru hota hai)
       await setDoc(doc(db, 'users', result.user.uid), {
         name: name,
         email: email,
-        role: 'candidate',
-        adminRequest: selectedRole === 'admin' ? 'pending' : 'none',
+        role: selectedRole === 'admin' ? 'admin' : 'candidate',
+        adminRequest: 'none',
         createdAt: serverTimestamp()
       });
 
-      if (selectedRole === 'admin') {
-        // admin request bheji hai, approval tak login nahi
-        await signOut(auth);
-        signupForm.reset();
-        showLoginTab();
-        showMsg('Admin request bhej di gayi ✓ Approve hone ke baad admin login karo.', false);
-        return;
-      }
-
-      window.location.href = 'index.html';
+      window.location.href = selectedRole === 'admin' ? 'admin.html' : 'index.html';
     } catch (err) {
       console.log(err);
       showMsg(friendlyError(err), true);
@@ -482,16 +447,24 @@ function initLoginPage() {
 }
 
 
+/* ---------- admin page ---------- */
 
-
-let adminJobs = [];   
+let adminJobs = [];
+let adminUser = null;
 
 async function renderRoles() {
   const list = document.getElementById('roleList');
   const statOpen = document.getElementById('statOpenRoles');
 
   try {
-    adminJobs = await getJobs();
+    const q = query(collection(db, 'jobs'), where('ownerId', '==', adminUser.uid));
+    const snapshot = await getDocs(q);
+    adminJobs = snapshot.docs.map(function (d) {
+      return { id: d.id, ...d.data() };
+    });
+    adminJobs.sort(function (a, b) {
+      return (b.createdAt ? b.createdAt.toMillis() : 0) - (a.createdAt ? a.createdAt.toMillis() : 0);
+    });
   } catch (err) {
     console.log(err);
     list.innerHTML = '<p style="color:#e66; padding:1.5em 0;">Could not load roles.</p>';
@@ -528,10 +501,13 @@ async function renderApplications() {
   const statNew = document.getElementById('statNew');
 
   try {
-    const q = query(collection(db, 'applications'), orderBy('appliedAt', 'desc'));
+    const q = query(collection(db, 'applications'), where('ownerId', '==', adminUser.uid));
     const snapshot = await getDocs(q);
     const apps = snapshot.docs.map(function (d) {
       return { id: d.id, ...d.data() };
+    });
+    apps.sort(function (a, b) {
+      return (b.appliedAt ? b.appliedAt.toMillis() : 0) - (a.appliedAt ? a.appliedAt.toMillis() : 0);
     });
 
     statApps.textContent = apps.length;
@@ -564,43 +540,6 @@ async function renderApplications() {
   }
 }
 
-// jin users ne admin access maangi hai unki list
-async function renderAdminRequests() {
-  const container = document.getElementById('requestsList');
-
-  try {
-    const q = query(collection(db, 'users'), where('adminRequest', '==', 'pending'));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      container.innerHTML = '<div class="empty-box"><span>No pending requests.</span></div>';
-      return;
-    }
-
-    container.innerHTML = snapshot.docs.map(function (d) {
-      const u = d.data();
-      return `
-        <div class="role-row">
-          <div class="role-icon">🛡</div>
-          <div class="role-info">
-            <div class="title">${escapeHtml(u.name)}</div>
-            <div class="meta">${escapeHtml(u.email)} · wants admin access</div>
-          </div>
-          <div class="role-actions">
-            <button title="Approve" data-action="approve" data-id="${d.id}">✓</button>
-            <button title="Reject" data-action="reject" data-id="${d.id}">✕</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  } catch (err) {
-    console.log(err);
-    container.innerHTML = '<p style="color:#e66;">Could not load requests.</p>';
-  }
-}
-
-/* ---------- modal (add / edit role) ---------- */
-
 function openModal(job) {
   document.getElementById('modalTitle').textContent = job ? 'Edit role' : 'Add a role';
   document.getElementById('roleId').value = job ? job.id : '';
@@ -624,8 +563,7 @@ async function deleteRole(id) {
   try {
     await deleteDoc(doc(db, 'jobs', id));
 
-    // is job ki saari applications bhi hata do
-    const q = query(collection(db, 'applications'), where('jobId', '==', id));
+    const q = query(collection(db, 'applications'), where('jobId', '==', id), where('ownerId', '==', adminUser.uid));
     const snapshot = await getDocs(q);
     for (const d of snapshot.docs) {
       await deleteDoc(d.ref);
@@ -639,35 +577,20 @@ async function deleteRole(id) {
   }
 }
 
-// admin approve ya reject kare
-async function decideRequest(userId, approve) {
-  try {
-    if (approve) {
-      await updateDoc(doc(db, 'users', userId), { role: 'admin', adminRequest: 'approved' });
-    } else {
-      await updateDoc(doc(db, 'users', userId), { adminRequest: 'rejected' });
-    }
-    await renderAdminRequests();
-  } catch (err) {
-    console.log(err);
-    alert('Request update nahi ho payi.');
-  }
-}
-
 async function initAdminPage() {
   const addBtn = document.getElementById('addRoleBtn');
-  if (!addBtn) return; // ye page nahi hai
+  if (!addBtn) return;
 
-  // sirf admin hi andar aa sakta hai
   const user = await getCurrentUser();
   if (!user || user.role !== 'admin') {
     window.location.href = 'login.html';
     return;
   }
 
+  adminUser = user;
+
   renderRoles();
   renderApplications();
-  renderAdminRequests();
 
   addBtn.addEventListener('click', function (e) {
     e.preventDefault();
@@ -681,7 +604,6 @@ async function initAdminPage() {
     if (e.target === overlay) closeModal();
   });
 
-  // roles list ke edit / delete buttons
   document.getElementById('roleList').addEventListener('click', function (e) {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -700,15 +622,6 @@ async function initAdminPage() {
     }
   });
 
-  // admin requests ke approve / reject buttons
-  document.getElementById('requestsList').addEventListener('click', function (e) {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-
-    decideRequest(btn.dataset.id, btn.dataset.action === 'approve');
-  });
-
-  // role save (add ya edit)
   document.getElementById('roleForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -736,6 +649,7 @@ async function initAdminPage() {
         await updateDoc(doc(db, 'jobs', idField), data);
       } else {
         data.createdAt = serverTimestamp();
+        data.ownerId = adminUser.uid;
         await addDoc(collection(db, 'jobs'), data);
       }
 
@@ -748,6 +662,8 @@ async function initAdminPage() {
   });
 }
 
+
+/* ---------- start ---------- */
 
 renderAuthArea();
 initFindJobPage();
