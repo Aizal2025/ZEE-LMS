@@ -26,7 +26,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
-
+/* ---------------- 2. firebase config ----------------
+   Firebase console -> Project settings -> Your apps (</> web app)
+   wahan se apni values copy karke yaha paste karo */
 const firebaseConfig = {
   apiKey: "AIzaSyAxJe1qUJSrRzbwlNrqn-O-TsKG657Ly0M",
   authDomain: "zee-lms-bbefe.firebaseapp.com",
@@ -41,7 +43,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 
-
+/* ==========================================================
+   3. helper functions (sabhi pages me use hote hain)
+   ========================================================== */
 
 // user ka text safe banane ke liye
 function escapeHtml(str) {
@@ -50,7 +54,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-
+// firestore timestamp ko "2d ago" jaisa text banata hai
 function timeAgo(timestamp) {
   if (!timestamp) return 'Just now';
 
@@ -65,7 +69,7 @@ function timeAgo(timestamp) {
   return 'Just now';
 }
 
-
+// firebase ke error code ko simple message me badalta hai
 function friendlyError(err) {
   const code = err.code || '';
 
@@ -76,10 +80,20 @@ function friendlyError(err) {
   if (code === 'auth/too-many-requests') return 'Bahut zyada try ho gaye, thodi der baad try karo.';
   if (code === 'permission-denied' || code === 'firestore/permission-denied') return 'Aapko ye kaam karne ki permission nahi hai.';
 
-  return 'Kuch gadbad ho gayi, dobara try karo.';
+  if (code === 'auth/operation-not-allowed') return 'Firebase Console me Authentication > Email/Password enable karo.';
+  if (code === 'auth/unauthorized-domain') return 'Firebase Console > Authentication > Settings > Authorized domains me apna github.io domain add karo.';
+  if (code === 'auth/network-request-failed') return 'Internet ya network check karo.';
+  if (code === 'unavailable' || code === 'failed-precondition') return 'Firestore Database create nahi hua ya offline hai (' + code + ').';
+
+  return 'Error: ' + (code || err.message);
 }
 
 
+/* ==========================================================
+   4. auth helpers
+   ========================================================== */
+
+// abhi kaun login hai (login nahi hai to null milega)
 function getCurrentUser() {
   return new Promise(function (resolve) {
     const stop = onAuthStateChanged(auth, async function (firebaseUser) {
@@ -90,7 +104,7 @@ function getCurrentUser() {
         return;
       }
 
-    
+      // role users collection me save hota hai
       const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
 
       if (!snap.exists()) {
@@ -109,6 +123,7 @@ function getCurrentUser() {
   });
 }
 
+// navbar me "Hi, name" aur Logout / Login link dikhana
 async function renderAuthArea() {
   const el = document.getElementById('authArea');
   if (!el) return; // is page me auth jagah nahi hai
@@ -131,7 +146,9 @@ async function renderAuthArea() {
 }
 
 
-
+/* ==========================================================
+   5. jobs - firestore functions
+   ========================================================== */
 
 async function getJobs() {
   const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
@@ -143,10 +160,12 @@ async function getJobs() {
 }
 
 
+/* ==========================================================
+   6. FIND JOB PAGE (index.html)
+   ========================================================== */
 
-
-let allJobs = [];           
-let appliedJobIds = [];      
+let allJobs = [];            // firestore se aayi saari jobs
+let appliedJobIds = [];      // jin jobs pe user apply kar chuka hai
 
 function renderJobs() {
   const grid = document.getElementById('jobGrid');
@@ -207,7 +226,7 @@ async function loadJobsPage() {
   try {
     allJobs = await getJobs();
 
-  
+    // agar candidate login hai to uski applications nikalo
     const user = await getCurrentUser();
     appliedJobIds = [];
 
@@ -233,7 +252,7 @@ async function handleApplyClick(e) {
   const jobId = btn.dataset.jobId;
   const user = await getCurrentUser();
 
- 
+  // login nahi hai to login page pe bhejo
   if (!user) {
     window.location.href = 'login.html';
     return;
@@ -252,6 +271,7 @@ async function handleApplyClick(e) {
   btn.textContent = 'Applying…';
 
   try {
+    // id = jobId_userId, isse ek banda ek job pe 2 baar apply nahi kar sakta
     await setDoc(doc(db, 'applications', jobId + '_' + user.uid), {
       jobId: jobId,
       jobTitle: job.title,
@@ -285,7 +305,9 @@ function initFindJobPage() {
 }
 
 
-/* ----------------------- (about.html)--------------*/
+/* ==========================================================
+   7. WHY ZEE PAGE (about.html)
+   ========================================================== */
 
 async function initAboutPage() {
   const liveCount = document.getElementById('liveCount');
@@ -302,10 +324,13 @@ async function initAboutPage() {
 }
 
 
+/* ==========================================================
+   8. LOGIN / SIGNUP PAGE (login.html)
+   ========================================================== */
 
 function initLoginPage() {
   const loginForm = document.getElementById('loginForm');
-  if (!loginForm) return; 
+  if (!loginForm) return; // ye page nahi hai
 
   const signupForm = document.getElementById('signupForm');
   const tabLogin = document.getElementById('tabLogin');
@@ -323,6 +348,7 @@ function initLoginPage() {
     msg.className = 'auth-msg ' + (isError ? 'error' : 'success');
   }
 
+  // role badalne pe text update karna
   function updateRoleText() {
     if (selectedRole === 'admin') {
       signupBtn.textContent = 'Request admin access';
@@ -390,6 +416,7 @@ function initLoginPage() {
 
       const data = snap.data();
 
+      // admin tab me candidate account se login kiya
       if (selectedRole === 'admin' && data.role !== 'admin') {
         await signOut(auth);
 
@@ -428,6 +455,7 @@ function initLoginPage() {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
 
+      // user ka data firestore me save (role hamesha candidate se shuru hota hai)
       await setDoc(doc(db, 'users', result.user.uid), {
         name: name,
         email: email,
@@ -437,6 +465,7 @@ function initLoginPage() {
       });
 
       if (selectedRole === 'admin') {
+        // admin request bheji hai, approval tak login nahi
         await signOut(auth);
         signupForm.reset();
         showLoginTab();
@@ -453,9 +482,9 @@ function initLoginPage() {
 }
 
 
-/*----------------- (admin.html)------------------------*/
 
-let adminJobs = [];  
+
+let adminJobs = [];   
 
 async function renderRoles() {
   const list = document.getElementById('roleList');
@@ -570,7 +599,7 @@ async function renderAdminRequests() {
   }
 }
 
-/* ----------(add / edit role) ---------- */
+/* ---------- modal (add / edit role) ---------- */
 
 function openModal(job) {
   document.getElementById('modalTitle').textContent = job ? 'Edit role' : 'Add a role';
@@ -718,7 +747,7 @@ async function initAdminPage() {
     }
   });
 }
-*/
+
 
 renderAuthArea();
 initFindJobPage();
