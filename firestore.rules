@@ -1,0 +1,17 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAxJe1qUJSrRzbwlNrqn-O-TsKG657Ly0M",
+  authDomain: "zee-lms-bbefe.firebaseapp.com",
+  projectId: "zee-lms-bbefe",
+  storageBucket: "zee-lms-bbefe.firebasestorage.app",
+  messagingSenderId: "1045754592352",
+  appId: "1:1045754592352:web:13c74ba63bbbcdd9f5d705",
+  measurementId: "G-2EXP12KS3W"
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);

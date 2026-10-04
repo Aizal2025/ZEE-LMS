@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>Zee Job Portal</title>
+
+  
+</head>
+
+<body>
+
+ <div class="navbar" id="navBar">
+        <div class="logo">
+            <h1>Zee-Job portal</h1>
+        </div>
+        <ul>
+            <li><a href="index.html">Find Job</a></li>
+            <li><a href="about.html">Why Zee</a></li>
+            <li><a href="admin.html">Admin desk</a></li>
+            <li><a href="login.html">login</a></li>
+            <li id="authAreaItem"><span id="authArea"></span></li>
+        </ul>
+    </div>
+ 
+    <div class="hero-section">
+        <div class="title">
+            <div class="sub-title">
+                <h3>Work That Moves You</h3>
+            </div>
+            <h1>Find a role with</h1>
+            <h2>real momentum.</h2>
+            <h4><b>Curated opportunities at teams building what's next.<br>
+                You need a platform — start here.</b></h4>
+        </div>
+    </div>
+ 
+    <div class="listing-section">
+        <div class="listing-header">
+            <div>
+                <div class="eyebrow">Open positions</div>
+                <h2>Make your next move</h2>
+            </div>
+            <div class="count">Loading…</div>
+        </div>
+ 
+        <div class="filter-bar">
+            <input type="search" id="searchBox" placeholder="Search by title, company, location or tag...">
+            <select id="typeFilter">
+                <option value="">All types</option>
+                <option>Full-time</option>
+                <option>Part-time</option>
+                <option>Contract</option>
+                <option>Internship</option>
+            </select>
+        </div>
+        <div class="job-grid" id="jobGrid"><p style="color:#888;">Loading roles…</p></div>
+    </div>
+ 
+
+  <!-- yaha pages render hote hain -->
+  <div id="app"></div>
+
+  <!-- footer -->
+  <div class="footer">
+    <b>zee<span>.</span></b>
+    <span>Better work starts with a better match.</span>
+    <span>© 2026 Zee-Job portal</span>
+  </div>
+
+  <!-- add / edit role modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="auth-box">
+      <h2 id="modalTitle" style="margin:0 0 1em;">Add a role</h2>
+
+      <form onsubmit="saveRole(event)">
+        <input type="hidden" id="roleId">
+
+        <div class="form-group">
+          <label>Role title</label>
+          <input type="text" id="fTitle" required placeholder="e.g. Backend Engineer">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Company</label>
+            <input type="text" id="fCompany" required>
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="fLocation" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Job type</label>
+            <select id="fType">
+              <option>Full-time</option>
+              <option>Part-time</option>
+              <option>Contract</option>
+              <option>Internship</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Salary</label>
+            <input type="text" id="fSalary" required placeholder="e.g. 6 LPA">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tags (comma-separated)</label>
+          <input type="text" id="fTags">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="logout-btn" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="cta-btn" style="margin:0;">Save role</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<script type="module" src="script.js"></script>
+
+</body>
+
+</html>
